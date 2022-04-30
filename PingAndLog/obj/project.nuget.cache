@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "yhnImWqE89MMDIDRvxjX8RWX4h03c/HMzxGxhXmYLJVQHccThloufE8Ub3xJ/ujNKMVLoL3ajVJcjNAJHKV/ng==",
+  "success": true,
+  "projectFilePath": "/home/david/Documents/RiderProjects/PingAndLog/PingAndLog/PingAndLog.csproj",
+  "expectedPackageFiles": [
+    "/home/david/.nuget/packages/jetbrains.dotmemoryunit/3.1.20200127.214830/jetbrains.dotmemoryunit.3.1.20200127.214830.nupkg.sha512"
+  ],
+  "logs": []
+}
