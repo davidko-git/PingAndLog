@@ -7,31 +7,40 @@ namespace PingAndLog
 {
     class PingDirector 
     {
-        int workingCount;
-        int workersCount;
-        PingLogger pingLogger;
-        PingWorker[] pingWorkers;
-        private Semaphore loggerDoneSemaphore;
-        private Semaphore workesDoneSemaphore;
+        private int workingCount;
+        private PingWorker[] pingWorkers;
+        private readonly int workersCount;
+        private readonly PingLogger pingLogger;
+        private readonly Semaphore loggerDoneSemaphore;
+        private readonly Semaphore workesDoneSemaphore;
 
-        public PingDirector(IPAddress[] targetAdresses, int pingsToSendCount)
+        public PingDirector(IPAddress[] targetAddresses, int pingsToSendCount)
         {
             this.pingLogger = new PingLogger();
-            this.workersCount = targetAdresses.Length;
+            this.workersCount = targetAddresses.Length;
             this.loggerDoneSemaphore = new Semaphore(0, 1);
             this.workesDoneSemaphore = new Semaphore(0, 1);
-            this.pingLogger.LoggingProcessed += loggerDone;
-            this.MakeWorkers(targetAdresses, pingsToSendCount, this.pingLogger.queue);
+            this.pingLogger.LoggingProcessed += LoggerDone;
+            this.MakeWorkers(targetAddresses,
+                            pingsToSendCount,
+                            this.pingLogger.queue,
+                            this.pingLogger.canLogSemaphore);
         }
 
-        private void MakeWorkers(IPAddress[] adresses, int pingsToSendCount, ConcurrentQueue<string> queue) 
+        private void MakeWorkers(IPAddress[] addresses,
+                                int pingsToSendCount,
+                                ConcurrentQueue<byte[]> queue,
+                                Semaphore loggerCanDoJobSemaphore) 
         {
-            pingWorkers = new PingWorker[adresses.Length];
+            pingWorkers = new PingWorker[addresses.Length];
 
-            for (int i = 0; i < adresses.Length; i++)
+            for (int i = 0; i < addresses.Length; i++)
             {
-                pingWorkers[i] = new PingWorker(adresses[i], pingsToSendCount, queue);
-                pingWorkers[i].PingsProcessed += this.pingWorkerDone;
+                pingWorkers[i] = new PingWorker(addresses[i],
+                                                pingsToSendCount,
+                                                queue,
+                                                loggerCanDoJobSemaphore);
+                pingWorkers[i].PingsProcessed += this.PingWorkerDone;
             }
         }
 
@@ -39,19 +48,34 @@ namespace PingAndLog
         {
             this.workingCount = this.workersCount;
             (new Thread(pingLogger.Start)).Start();
+            this.EnqueueXMLStart();
 
             foreach (PingWorker pingWorker in this.pingWorkers)
             {
-                Thread pingWorkerThread = new Thread(pingWorker.Start);
-                pingWorkerThread.Start();
+                (new Thread(pingWorker.Start)).Start();
             }
-
+            
             this.workesDoneSemaphore.WaitOne();
-            System.Threading.Interlocked.Decrement(ref this.pingLogger.logging);
+            this.EnqueueXMLEnd();
+            System.Threading.Interlocked.Decrement(ref this.pingLogger.loggingOn);
+            this.pingLogger.canLogSemaphore.Release();
             this.loggerDoneSemaphore.WaitOne();
         }
+        
+        private void EnqueueXMLStart()
+        {
+            pingLogger.queue.Enqueue(Constants.XMLHeader);
+            pingLogger.queue.Enqueue(Constants.ResultsOpen);
+            pingLogger.canLogSemaphore.Release(2);
+        }
 
-        public void pingWorkerDone(object sender, EventArgs e)
+        private void EnqueueXMLEnd()
+        {
+            pingLogger.queue.Enqueue(Constants.ResultsClose);
+            pingLogger.canLogSemaphore.Release(1);
+        }
+        
+        private void PingWorkerDone(object sender, EventArgs e)
         {
             System.Threading.Interlocked.Decrement(ref this.workingCount);
             
@@ -61,7 +85,7 @@ namespace PingAndLog
             }
         }
 
-        public void loggerDone(object sender, EventArgs e)
+        private void LoggerDone(object sender, EventArgs e)
         {
             this.loggerDoneSemaphore.Release();
         }

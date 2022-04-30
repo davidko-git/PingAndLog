@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <xs:element name="TargetAddress" type="xs:string"/>
+    <xs:element name="Status" type="xs:string"/>
+    <xs:element name="RoundtripTime" type="xs:string"/>
+
+    <xs:element name="PingReplyRecord">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="TargetAddress" minOccurs ="0"/>
+                <xs:element ref="Status" minOccurs="0"/>
+                <xs:element ref="RoundtripTime" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="Results">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="PingReplyRecord" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

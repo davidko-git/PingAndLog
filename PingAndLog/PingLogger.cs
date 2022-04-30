@@ -1,50 +1,47 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Text;
+using System.Threading;
 
 namespace PingAndLog
 {
     class PingLogger
     {
-        public ConcurrentQueue<string> queue;
-
-        public int logging;
+        public int loggingOn;
+        public readonly Semaphore canLogSemaphore;
+        public readonly ConcurrentQueue<byte[]> queue;
 
         public PingLogger()
         {
-            this.logging = 0;
-            this.queue = new ConcurrentQueue<string>();
+            this.loggingOn = 0;
+            this.queue = new ConcurrentQueue<byte[]>();
+            this.canLogSemaphore = new Semaphore(0, Int32.MaxValue);
         }
 
         public void Start()
         {
-            this.logging = 1;
-            string currentItem;
-            int debug_counter = 0;
+            this.loggingOn = 1;
 
-            using (StreamWriter outputFile = new StreamWriter("output.xml", false)) 
+            using (FileStream outputFile = File.Open("output.xml", FileMode.Create)) 
             {
-                outputFile.WriteLine("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-                outputFile.WriteLine("<results>");
-
-                while (this.logging == 1)
+                while (this.loggingOn == 1)
                 {
-                    debug_counter += 1;
-                    if (debug_counter % 50000 == 0)
+                    canLogSemaphore.WaitOne();
+
+                    if (queue.TryDequeue(out byte[] currentItem))
                     {
-                        ;
-                    }
-                    
-                    if (queue.TryDequeue(out currentItem))
-                    {
-                        outputFile.WriteLine(currentItem);
+                        outputFile.Write(currentItem);
                     }
                 }
-
-                outputFile.WriteLine("</results>");
             }
 
-            this.LoggingProcessed.Invoke(this, null);
+            this.LoggingDone();
+        }
+
+        private void LoggingDone()
+        {
+            this.LoggingProcessed?.Invoke(this, null);
         }
 
         public event EventHandler LoggingProcessed;
