@@ -1,43 +1,40 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace PingAndLog
 {
-    public class Tests
-    {
-        public void Test1()
-        {
-            IPAddress[] addresses = new IPAddress[]
-            {
-                new IPAddress(new byte[] { 127, 0, 0, 1 }),
-                new IPAddress(new byte[] { 128, 0, 0, 1 }),
-                new IPAddress(new byte[] { 192, 168, 0, 1 }),
-                new IPAddress(new byte[] { 192, 168, 0, 2 }),
-                new IPAddress(new byte[] { 192, 168, 0, 3 })
-            };
-            
-            int pingsPerAddress = 1;
-            int testAddressesDuplCount = 1;
-            IPAddress[] testAdresses = new IPAddress[testAddressesDuplCount * addresses.Length];
-            
-            for (int i = 0; i < testAdresses.Length; i++)
-            {
-                testAdresses[i] = new IPAddress(addresses[i%addresses.Length].GetAddressBytes());
-            }
-            
-            PingDirector director = new PingDirector(testAdresses, pingsPerAddress);
-
-            director.Start();
-            Console.WriteLine("Test1 finish");
-        }
-    }
-
     class Program
     {
         static void Main(string[] args)
         {
-            Tests tests = new Tests();
-            tests.Test1();
+            int pingsPerAddress;
+            IPAddress[] targetAddresses;
+            
+            if (args[0] == "test")
+            {
+                targetAddresses = Constants.testIPAddresses;
+                pingsPerAddress = Constants.testPingsPerAddressCount;
+            }
+            else
+            {
+                int runnigTime = Int32.Parse(args[0]); 
+                pingsPerAddress = runnigTime * 10;
+                targetAddresses = new IPAddress[args.Length - 1];
+            
+                for (int i = 1; i < args.Length; i++)
+                {
+                    targetAddresses[i - 1] = IPAddress.Parse(args[i]);
+                }
+            }
+            
+            PingDirector director = new PingDirector(targetAddresses,
+                pingsPerAddress,
+                Constants.DefaultOutputFileName);
+            director.Start();
+            Console.WriteLine("Pinging done");
+            Dictionary<string, int> successfulPingsCounts = Utilities.GetSuccessfulPingsCounts(Constants.DefaultOutputFileName);
+            Utilities.PrintSuccessfulPingsRates(successfulPingsCounts, pingsPerAddress) ;
         }
     }
 }

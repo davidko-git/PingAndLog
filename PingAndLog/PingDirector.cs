@@ -14,9 +14,9 @@ namespace PingAndLog
         private readonly Semaphore loggerDoneSemaphore;
         private readonly Semaphore workesDoneSemaphore;
 
-        public PingDirector(IPAddress[] targetAddresses, int pingsToSendCount)
+        public PingDirector(IPAddress[] targetAddresses, int pingsToSendCount, string outputFileName)
         {
-            this.pingLogger = new PingLogger();
+            this.pingLogger = new PingLogger(outputFileName);
             this.workersCount = targetAddresses.Length;
             this.loggerDoneSemaphore = new Semaphore(0, 1);
             this.workesDoneSemaphore = new Semaphore(0, 1);

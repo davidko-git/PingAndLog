@@ -38,11 +38,11 @@ namespace PingAndLog
             for (int i = 0; i < toSendCount; i++)
             {
                 Ping pingSender = new Ping();
+                pingSender.PingCompleted += this.PingCompletedCallback;
                 Thread.Sleep(100);
 
                 try
                 {
-                    pingSender.PingCompleted += this.PingCompletedCallback;
                     pingSender.SendAsync(this.assignedIPAddress,  300, null);
                 }
                 catch
